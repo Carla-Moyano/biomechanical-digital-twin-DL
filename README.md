@@ -27,38 +27,17 @@ The key research questions are:
 ```
 biomecánico-digital-twin-DL/
 │
-├── M1-Baseline/
-│   └── linear_regression_baseline.py   # Ridge regression (α=1.0), per-frame prediction
-│
-├── M2-Transformer/
-│   ├── M2_Transformer_Encoder_TFM.ipynb # Training notebook (Colab / local)
-│   └── M2_epoch29_best.pt               # Best checkpoint (epoch 29) — see note below
-│
-├── M3-PINN/
-│   ├── M3_PINN_TFM.ipynb                # Physics-informed MLP with joint-angle constraints
-│   └── M3_PINN_best.pt                  # Best checkpoint
-│
-├── M4-UNet/
-│   ├── M4_UNet_TFM.ipynb                # 1-D temporal U-Net for sequence-to-sequence mapping
-│   └── M4_UNet_best.pt                  # Best checkpoint
-│
-├── M5-Fewshot/
-│   └── modelo_m5_fewshot.py             # Few-shot calibration of M2 (L2-SP, K=5/10/20)
-│
-├── Figuras-finales/
-│   └── generar_figuras_finales.ipynb    # Publication-quality figures for the thesis
-│
-├── sintetizar_imu_amass.py              # Synthesize IMU signals from AMASS MoCap sequences
-├── combinar_datasets.py                 # Merge DIP-IMU + AMASS into unified .npz splits
-├── generar_figuras_m1_m2_m5.py         # Comparative bar charts, boxplots, Bland-Altman
-│
-├── imu_own_training.npz                 # Training split  (851 sequences, subjects S01–S08)
-├── imu_own_validation.npz              # Validation split (3 long sequences)
-├── imu_own_test.npz                     # Test split       (18 sequences, subjects S09–S10)
-│
-├── M5_fewshot_results.txt               # Full comparative table M5 (s09-s10 + S06)
-├── M5_fewshot_s06.txt                   # S06-specific calibration results
-└── README.md
+├── linear_regression_baseline.py    # M1: Ridge regression baseline
+├── modelo_m5_fewshot.py             # M5: Few-shot calibration (K=5/10/20)
+├── sintetizar_imu_amass.py          # IMU synthesis from AMASS MoCap
+├── combinar_datasets.py             # Merge datasets into unified .npz
+├── generar_figuras_m1_m2_m5.py     # Comparative figures (bar charts, Bland-Altman)
+├── M2_Transformer_Encoder_TFM.ipynb # M2: Transformer training notebook (Colab)
+├── M3_PINN_TFM.ipynb                # M3: PINN training notebook (Colab)
+├── M4_UNet_TFM.ipynb                # M4: U-Net training notebook (Colab)
+├── README.md
+├── LICENSE
+└── .gitignore
 ```
 
 ---
