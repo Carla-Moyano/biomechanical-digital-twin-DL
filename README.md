@@ -17,7 +17,7 @@ data from AMASS.
 The key research questions are:
 - Can a Transformer Encoder outperform a linear baseline for IMU-driven pose estimation?
 - Do physics-informed (PINN) or temporal convolutional (U-Net) inductive biases help?
-- Can **few-shot calibration** (K = 5–20 windows) adapt a pre-trained model to a new subject
+- Can **few-shot calibration** (K = 20 windows) adapt a pre-trained model to a new subject
   — including S06, the only female subject in the dataset — at negligible cost?
 
 ---
@@ -25,20 +25,29 @@ The key research questions are:
 ## Repository Structure
 
 ```
-biomecánico-digital-twin-DL/
+biomechanical-digital-twin-DL/
 │
-├── linear_regression_baseline.py    # M1: Ridge regression baseline
-├── modelo_m5_fewshot.py             # M5: Few-shot calibration (K=5/10/20)
-├── sintetizar_imu_amass.py          # IMU synthesis from AMASS MoCap
-├── combinar_datasets.py             # Merge datasets into unified .npz
-├── generar_figuras_m1_m2_m5.py     # Comparative figures (bar charts, Bland-Altman)
-├── M2_Transformer_Encoder_TFM.ipynb # M2: Transformer training notebook (Colab)
-├── M3_PINN_TFM.ipynb                # M3: PINN training notebook (Colab)
-├── M4_UNet_TFM.ipynb                # M4: U-Net training notebook (Colab)
-├── README.md
-├── LICENSE
-└── .gitignore
+├── linear_regression_baseline.py        # M1 — Ridge regression (α=1.0), per-frame prediction
+├── M2_Transformer_Encoder_TFM.ipynb     # M2 — Transformer Encoder training notebook (Colab / local)
+├── M3_PINN_TFM.ipynb                    # M3 — Physics-informed MLP notebook
+├── M4_UNet_TFM.ipynb                    # M4 — 1D temporal U-Net notebook
+├── modelo_m5_fewshot.py                 # M5 — Few-shot calibration of M2 (L2-SP, K=20)
+│
+├── sintetizar_imu_amass.py              # Synthesize IMU signals from AMASS MoCap sequences
+├── combinar_datasets.py                 # Merge DIP-IMU + AMASS into unified .npz splits
+├── generar_figuras_m1_m2_m5.py         # Comparative bar charts, boxplots, Bland-Altman
+├── generar_figuras_finales.ipynb        # Publication-quality figures for the thesis
+│
+├── M5_fewshot_results.txt               # Full comparative table M5 (s09-s10 + S06)
+├── M5_fewshot_s06.txt                   # S06-specific calibration results
+│
+├── requirements.txt
+└── README.md
 ```
+
+> **Note on model checkpoints:** Trained checkpoints (`M2_epoch29_best.pt`, `M3_PINN_best.pt`,
+> `M4_UNet_best.pt`) are not included in this repository due to file size constraints.
+> They are **available upon request** — please open a GitHub Issue or contact the author directly.
 
 ---
 
@@ -48,10 +57,10 @@ biomecánico-digital-twin-DL/
 
 | Package | Version |
 |---------|---------|
-| Python | 3.12 |
-| PyTorch | 2.11 (CPU or CUDA) |
-| NumPy | 2.0 |
-| scikit-learn | 1.5 |
+| Python | 3.10 |
+| PyTorch | 2.1.2 (CPU or CUDA) |
+| NumPy | 1.26.4 |
+| scikit-learn | 1.4.2 |
 | matplotlib | ≥ 3.8 |
 | scipy | ≥ 1.13 |
 
@@ -59,7 +68,7 @@ biomecánico-digital-twin-DL/
 
 ```bash
 # Clone the repository
-git clone https://github.com/CarMoy/biomecanico-digital-twin-DL.git
+git clone https://github.com/Carla-Moyano/biomechanical-digital-twin-DL
 cd biomecanico-digital-twin-DL
 
 # Create and activate a virtual environment
@@ -68,12 +77,12 @@ source venv/bin/activate        # Linux / macOS
 venv\Scripts\activate           # Windows
 
 # Install dependencies
-pip install torch==2.11.0 numpy==2.0.0 scikit-learn==1.5.0 matplotlib scipy
+pip install torch==2.1.2 numpy==1.26.4 scikit-learn==1.4.2 matplotlib scipy
 ```
 
-> **Note on PyTorch version:** `torch==2.11.0+cpu` is used for CPU-only environments.
+> **Note on PyTorch version:** `torch==2.1.2+cpu` is used for CPU-only environments.
 > For GPU training, install the CUDA variant matching your driver:
-> `pip install torch==2.11.0+cu121 --index-url https://download.pytorch.org/whl/cu121`
+> `pip install torch==2.1.2+cu121 --index-url https://download.pytorch.org/whl/cu121`
 
 ---
 
@@ -104,11 +113,13 @@ Each `.npz` split contains:
 
 | Field | Shape per sequence | Description |
 |-------|--------------------|-------------|
-| `orientation` | `(T, 45)` | 9 IMUs × 5-element quaternion-derived features |
-| `acceleration` | `(T, 15)` | 9 IMUs × 3-axis linear acceleration |
+| `orientation` | `(T, 45)` | 5 IMUs × 9 valores (matriz rotación 3×3) |
+| `acceleration` | `(T, 15)` | 5 IMUs × 3-axis linear acceleration |
 | `smpl_pose` | `(T, 135)` | 45 joints × 3 (axis-angle rotation) — ground truth |
 | `data_id` | scalar string | Subject identifier (`'s1'`…`'s8'` in training) |
 | `statistics` | dict | Per-channel mean and std for z-score normalization |
+
+Total: **60 features de entrada por frame** (45 orientation + 15 acceleration).
 
 ---
 
@@ -204,55 +215,17 @@ Produces `fig6_comparativa_5modelos.png`, `fig_boxplot_mae.png`, and `fig_bland_
 
 ---
 
-## Model Checkpoints
-
-Trained checkpoints are **not included** in this repository due to file size constraints.
-
-| Checkpoint | Size | Notes |
-|------------|------|-------|
-| `M2_epoch29_best.pt` | ~24 MB | Required by M5 |
-| `M3_PINN_best.pt` | ~12 MB | — |
-| `M4_UNet_best.pt` | ~18 MB | — |
-
-**Checkpoints are available upon request** — please open a GitHub Issue or contact
-the author directly (see below). Place them in their respective model folders
-before running the scripts.
-
----
-
 ## Results
 
-All metrics are computed on the **DIP-IMU test set** (subjects S09–S10, 859 windows of 60 frames)
-in the **original (denormalized) space**, averaged uniformly across all 135 SMPL pose channels.
+| Model | RMSE (rad) | nRMSE (%) | R² | Latency (CPU) |
+|-------|------------|-----------|-----|---------------|
+| M1 Ridge baseline | 0.1293 | 12.93 | 0.261 | 0.06 ms |
+| M2 Transformer encoder | 0.1097 | 10.01 | 0.418 | 3.20 ms |
+| M3 PINN biomechanical | 0.1442 | 7.21 | 0.298 | 0.47 ms |
+| M4 U-Net 1D temporal | 0.1539 | 11.87 | 0.238 | 1.29 ms |
+| M5 Few-shot K=20 | 0.1083 | 9.89 | 0.436 | 3.84 ms |
 
-### Main comparison (test split: S09–S10)
-
-| Model | Architecture | RMSE ↓ | nRMSE (%) ↓ | R² ↑ |
-|-------|-------------|--------|------------|------|
-| **M1** | Ridge Regression | 0.1293 | 11.66 % | 0.261 |
-| **M2** | Transformer Encoder | 0.1097 | 10.01 % | 0.418 |
-| **M3** | MLP-PINN | 0.1442 | 7.21 % | 0.298 |
-| **M4** | U-Net 1D | 0.1539 | 7.70 % | 0.238 |
-| **M5** K=5 | M2 + few-shot | 0.1096 | 10.01 % | 0.420 |
-| **M5** K=10 | M2 + few-shot | 0.1088 | 9.92 % | 0.429 |
-| **M5** K=20 | M2 + few-shot | **0.1083** | **9.88 %** | **0.436** |
-
-> M2 is the strongest single model. M5 (K=20) achieves the best overall result with
-> only 323 K trainable parameters updated on 20 calibration windows (~1,200 frames).
-
-### S06 experiment (female subject — training split)
-
-S06 is evaluated separately because she belongs to the training split,
-raising the question of whether M2 already generalises to her or benefits from calibration.
-
-| Model | RMSE ↓ | nRMSE (%) ↓ | R² ↑ | n windows |
-|-------|--------|------------|------|-----------|
-| M2 (no calibration) on S06 | 0.0435 | 4.96 % | 0.864 | 552 |
-| M5 K=20 on S06 | 0.0436 | 4.97 % | 0.864 | 532 |
-
-> M2 already predicts S06 with high accuracy (R² = 0.864 vs 0.418 on unseen subjects),
-> suggesting S06's motion patterns are well covered by the training distribution.
-> Few-shot calibration yields no meaningful gain in this case.
+All models operate well below the 16.7 ms/window real-time threshold at 60 Hz. M5 (few-shot calibration) achieves the best overall performance. Latency measured on CPU with 2000 iterations and 200 warmup runs (torch.no_grad()).
 
 ---
 
